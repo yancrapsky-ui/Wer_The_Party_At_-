@@ -75,7 +75,7 @@
   </style>
 </head>
 <body>
-  <h1>Wer The Party At ?!</h1>
+  <h1>Wer The Party ?</h1>
 
   <form id="partyForm">
     <label for="code">Entrez votre code VSS :</label><br>
@@ -98,7 +98,15 @@
 
   <script>
     const MAX_PLACES = 110;
-    const REDIRECT_URL = "https://www.helloasso.com/associations/tribu-ensae/evenements/wer-ensae-2025"; // à changer selon ton besoin
+    const REDIRECT_URL = "https://example.com"; // à changer selon ton besoin
+
+    // Codes encodés en base64 pour plus de discrétion
+    const codeUserEncoded = "ODY0Nw=="; // 8647
+    const codeAdminEncoded = "MTUzNA=="; // 1534
+
+    function decode(str) {
+      return atob(str);
+    }
 
     if (!localStorage.getItem("placesUsed")) {
       localStorage.setItem("placesUsed", "0");
@@ -122,7 +130,7 @@
         return;
       }
 
-      if (code === "7865") {
+      if (code === decode(codeUserEncoded)) {
         localStorage.setItem("placesUsed", used + 1);
         updateRemaining();
         window.location.href = REDIRECT_URL;
@@ -136,7 +144,7 @@
       let resetCode = document.getElementById("resetCode").value;
       let resetMessage = document.getElementById("resetMessage");
 
-      if (resetCode === "1798") {
+      if (resetCode === decode(codeAdminEncoded)) {
         localStorage.setItem("placesUsed", "0");
         updateRemaining();
         resetMessage.textContent = "Compteur réinitialisé avec succès !";
@@ -161,3 +169,4 @@
   </script>
 </body>
 </html>
+
