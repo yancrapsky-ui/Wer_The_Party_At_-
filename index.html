@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Wer The Party At ?!</title>
+  <title>Wer The Party ?</title>
   <style>
     body {
       margin: 0;
@@ -68,6 +68,10 @@
       from { transform: translateY(100vh) scale(1); }
       to { transform: translateY(-120vh) scale(1.2); }
     }
+
+    /* Admin reset caché */
+    #resetForm { display: none; }
+    #adminLink { cursor: pointer; color: white; font-size: 12px; position: fixed; bottom: 5px; right: 10px; }
   </style>
 </head>
 <body>
@@ -89,6 +93,8 @@
     <button type="submit">Reset Compteur</button>
     <p id="resetMessage"></p>
   </form>
+
+  <p id="adminLink">Admin</p>
 
   <script>
     const MAX_PLACES = 110;
@@ -137,6 +143,10 @@
       } else {
         resetMessage.textContent = "Code admin incorrect.";
       }
+    });
+
+    document.getElementById("adminLink").addEventListener("click", function() {
+      document.getElementById("resetForm").style.display = "block";
     });
 
     // Génération de 20 ballons aléatoires
