@@ -97,7 +97,7 @@
   <p id="adminLink">Admin</p>
 
   <script>
-    const MAX_PLACES = 1;
+    const MAX_PLACES = 100;
     const REDIRECT_URL = "https://www.helloasso.com/associations/tribu-ensae/evenements/wer-ensae-2025"; // à changer selon ton besoin
 
     // Codes encodés en base64 pour plus de discrétion
@@ -126,7 +126,7 @@
       let message = document.getElementById("message");
 
       if (used >= MAX_PLACES) {
-        message.textContent = "Désolé, le quota de 110 personnes est atteint.";
+        message.textContent = "Désolé, le quota de 100 personnes est atteint.";
         return;
       }
 
