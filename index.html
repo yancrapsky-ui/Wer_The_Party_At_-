@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>Wer The Party ?</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <style>
     body {
       margin: 0;
@@ -15,12 +17,7 @@
       overflow: hidden;
       font-family: Arial, sans-serif;
     }
-
-    h1 {
-      color: white;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.4);
-    }
-
+    h1 { color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.4); }
     form {
       background: white;
       padding: 20px;
@@ -31,29 +28,9 @@
       z-index: 2;
       margin-bottom: 15px;
     }
-
-    input {
-      padding: 8px;
-      margin: 10px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-
-    button {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 5px;
-      background: dodgerblue;
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    button:disabled {
-      background: gray;
-      cursor: not-allowed;
-    }
-
+    input { padding: 8px; margin: 10px; border: 1px solid #ccc; border-radius: 5px; }
+    button { padding: 10px 20px; border: none; border-radius: 5px; background: dodgerblue; color: white; font-size: 16px; cursor: pointer; }
+    button:disabled { background: gray; cursor: not-allowed; }
     .ballon {
       position: absolute;
       width: 40px;
@@ -63,13 +40,7 @@
       animation: float 10s infinite ease-in-out;
       opacity: 0.8;
     }
-
-    @keyframes float {
-      from { transform: translateY(100vh) scale(1); }
-      to { transform: translateY(-120vh) scale(1.2); }
-    }
-
-    /* Admin reset caché */
+    @keyframes float { from { transform: translateY(100vh) scale(1);} to { transform: translateY(-120vh) scale(1.2);} }
     #resetForm { display: none; }
     #adminLink { cursor: pointer; color: white; font-size: 12px; position: fixed; bottom: 5px; right: 10px; }
   </style>
@@ -97,56 +68,67 @@
   <p id="adminLink">Admin</p>
 
   <script>
+    // ⚡ Config Firebase (à remplacer par tes propres infos depuis console.firebase.google.com)
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+      projectId: "YOUR_PROJECT",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "SENDER_ID",
+      appId: "APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
     const MAX_PLACES = 100;
-    const REDIRECT_URL = "https://www.helloasso.com/associations/tribu-ensae/evenements/wer-ensae-2025"; // à changer selon ton besoin
+    const REDIRECT_URL = "https://www.helloasso.com/associations/tribu-ensae/evenements/wer-ensae-2025";
 
-    // Codes encodés en base64 pour plus de discrétion
+    // Codes en base64
     const codeUserEncoded = "ODY0Nw==";
-    const codeAdminEncoded = "MTUzNA=="; 
+    const codeAdminEncoded = "MTUzNA==";
 
-    function decode(str) {
-      return atob(str);
-    }
+    function decode(str) { return atob(str); }
 
-    if (!localStorage.getItem("placesUsed")) {
-      localStorage.setItem("placesUsed", "0");
-    }
+    const remainingSpan = document.getElementById("remaining");
 
-    function updateRemaining() {
-      let used = parseInt(localStorage.getItem("placesUsed"));
-      document.getElementById("remaining").textContent = MAX_PLACES - used;
-    }
+    // 🔄 Écoute en temps réel du compteur
+    const counterRef = db.ref("placesUsed");
+    counterRef.on("value", (snapshot) => {
+      let used = snapshot.val() ?? 0;
+      remainingSpan.textContent = MAX_PLACES - used;
+    });
 
-    updateRemaining();
-
+    // Validation utilisateur
     document.getElementById("partyForm").addEventListener("submit", function(e) {
       e.preventDefault();
       let code = document.getElementById("code").value;
-      let used = parseInt(localStorage.getItem("placesUsed"));
       let message = document.getElementById("message");
 
-      if (used >= MAX_PLACES) {
-        message.textContent = "Désolé, le quota de 100 personnes est atteint.";
-        return;
-      }
-
-      if (code === decode(codeUserEncoded)) {
-        localStorage.setItem("placesUsed", used + 1);
-        updateRemaining();
-        window.location.href = REDIRECT_URL;
-      } else {
-        message.textContent = "Code incorrect. Réessayez.";
-      }
+      counterRef.once("value").then((snap) => {
+        let used = snap.val() ?? 0;
+        if (used >= MAX_PLACES) {
+          message.textContent = "Désolé, le quota est atteint.";
+          return;
+        }
+        if (code === decode(codeUserEncoded)) {
+          counterRef.set(used + 1);
+          window.location.href = REDIRECT_URL;
+        } else {
+          message.textContent = "Code incorrect. Réessayez.";
+        }
+      });
     });
 
+    // Admin reset
     document.getElementById("resetForm").addEventListener("submit", function(e) {
       e.preventDefault();
       let resetCode = document.getElementById("resetCode").value;
       let resetMessage = document.getElementById("resetMessage");
 
       if (resetCode === decode(codeAdminEncoded)) {
-        localStorage.setItem("placesUsed", "0");
-        updateRemaining();
+        counterRef.set(0);
         resetMessage.textContent = "Compteur réinitialisé avec succès !";
       } else {
         resetMessage.textContent = "Code admin incorrect.";
@@ -157,7 +139,7 @@
       document.getElementById("resetForm").style.display = "block";
     });
 
-    // Génération de 20 ballons aléatoires
+    // 🎈 Ballons animés
     for (let i = 0; i < 20; i++) {
       let ballon = document.createElement("div");
       ballon.className = "ballon";
@@ -169,4 +151,3 @@
   </script>
 </body>
 </html>
-
