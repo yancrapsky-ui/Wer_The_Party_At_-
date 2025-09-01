@@ -3,8 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>US WEI</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <style>
     body {
       margin: 0;
@@ -14,7 +12,6 @@
       align-items: center;
       flex-direction: column;
       background: skyblue;
-      overflow: hidden;
       font-family: Arial, sans-serif;
     }
     h1 { color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.4); }
@@ -24,25 +21,22 @@
       border-radius: 15px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
       text-align: center;
-      position: relative;
-      z-index: 2;
       margin-bottom: 15px;
     }
     input { padding: 8px; margin: 10px; border: 1px solid #ccc; border-radius: 5px; }
     button { padding: 10px 20px; border: none; border-radius: 5px; background: dodgerblue; color: white; font-size: 16px; cursor: pointer; }
-    button:disabled { background: gray; cursor: not-allowed; }
     .ballon {
       position: absolute;
       width: 40px;
       height: 50px;
-      background: radial-gradient(circle at 30% 30%, white, red);
-      border-radius: 50% 50% 50% 50%;
+      border-radius: 50%;
       animation: float 10s infinite ease-in-out;
       opacity: 0.8;
     }
-    @keyframes float { from { transform: translateY(100vh) scale(1);} to { transform: translateY(-120vh) scale(1.2);} }
-    #resetForm { display: none; }
-    #adminLink { cursor: pointer; color: white; font-size: 12px; position: fixed; bottom: 5px; right: 10px; }
+    @keyframes float {
+      from { transform: translateY(100vh) scale(1); }
+      to { transform: translateY(-120vh) scale(1.2); }
+    }
   </style>
 </head>
 <body>
@@ -54,98 +48,25 @@
     <br>
     <button type="submit">Valider</button>
     <p id="message"></p>
-    <p>Places restantes : <span id="remaining"></span></p>
   </form>
-
-  <form id="resetForm">
-    <label for="resetCode">Code admin (reset) :</label><br>
-    <input type="password" id="resetCode">
-    <br>
-    <button type="submit">Reset Compteur</button>
-    <p id="resetMessage"></p>
-  </form>
-
-  <p id="adminLink">Admin</p>
 
   <script>
-    // ⚡ Config Firebase (remplace par tes vraies infos depuis la console Firebase)
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT.firebaseapp.com",
-      databaseURL: "https://YOUR_PROJECT.firebaseio.com",
-      projectId: "YOUR_PROJECT",
-      storageBucket: "YOUR_PROJECT.appspot.com",
-      messagingSenderId: "SENDER_ID",
-      appId: "APP_ID"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-
-    // ⚙️ Paramètres
-    const MAX_PLACES = 2; 
-    const REDIRECT_URL = "https://www.helloasso.com/associations/tribu-ensae/evenements/wer-ensae-2025";
-
-    // Codes en base64
+    // 🔑 Code utilisateur (encodé en base64)
     const codeUserEncoded = "MTQ4NjUy"; // 148652
-    const codeAdminEncoded = "MTUzNA=="; // 1534
-
     function decode(str) { return atob(str); }
 
-    const remainingSpan = document.getElementById("remaining");
-    const counterRef = db.ref("placesUsed");
+    const REDIRECT_URL = "https://www.helloasso.com/associations/tribu-ensae/evenements/wer-ensae-2025";
 
-    // 🔄 Affichage en direct du compteur
-    counterRef.on("value", (snapshot) => {
-      let used = snapshot.val() ?? 0;
-      remainingSpan.textContent = MAX_PLACES - used;
-    });
-
-    // ✅ Validation utilisateur
     document.getElementById("partyForm").addEventListener("submit", function(e) {
       e.preventDefault();
       let code = document.getElementById("code").value.trim();
       let message = document.getElementById("message");
 
       if (code === decode(codeUserEncoded)) {
-        counterRef.transaction((used) => {
-          used = used ?? 0;
-          if (used < MAX_PLACES) {
-            return used + 1;
-          } else {
-            return; // quota atteint
-          }
-        }, (error, committed) => {
-          if (error) {
-            message.textContent = "Erreur Firebase : " + error;
-          } else if (!committed) {
-            message.textContent = "Désolé, le quota est atteint.";
-          } else {
-            console.log("Redirection vers HelloAsso...");
-            window.location.href = REDIRECT_URL;
-          }
-        });
+        window.location.href = REDIRECT_URL;
       } else {
         message.textContent = "Code incorrect. Réessayez.";
       }
-    });
-
-    // ✅ Admin reset
-    document.getElementById("resetForm").addEventListener("submit", function(e) {
-      e.preventDefault();
-      let resetCode = document.getElementById("resetCode").value.trim();
-      let resetMessage = document.getElementById("resetMessage");
-
-      if (resetCode === decode(codeAdminEncoded)) {
-        counterRef.set(0);
-        resetMessage.textContent = "Compteur réinitialisé avec succès !";
-      } else {
-        resetMessage.textContent = "Code admin incorrect.";
-      }
-    });
-
-    document.getElementById("adminLink").addEventListener("click", function() {
-      document.getElementById("resetForm").style.display = "block";
     });
 
     // 🎈 Ballons animés
