@@ -43,7 +43,6 @@
     @keyframes float { from { transform: translateY(100vh) scale(1);} to { transform: translateY(-120vh) scale(1.2);} }
     #resetForm { display: none; }
     #adminLink { cursor: pointer; color: white; font-size: 12px; position: fixed; bottom: 5px; right: 10px; }
-    #message, #resetMessage { min-height: 1.2em; }
   </style>
 </head>
 <body>
@@ -53,9 +52,9 @@
     <label for="code">Entrez votre code règlement :</label><br>
     <input type="password" id="code" required>
     <br>
-    <button type="submit" id="submitBtn">Valider</button>
-    <p id="message" aria-live="polite"></p>
-    <p>Places restantes : <span id="remaining">Chargement…</span></p>
+    <button type="submit">Valider</button>
+    <p id="message"></p>
+    <p>Places restantes : <span id="remaining"></span></p>
   </form>
 
   <form id="resetForm">
@@ -63,37 +62,28 @@
     <input type="password" id="resetCode">
     <br>
     <button type="submit">Reset Compteur</button>
-    <p id="resetMessage" aria-live="polite"></p>
+    <p id="resetMessage"></p>
   </form>
 
   <p id="adminLink">Admin</p>
 
   <script>
-    // ⚡ Config Firebase (remplace par TES vraies valeurs depuis console.firebase.google.com)
+    // ⚡ Config Firebase (remplace par tes vraies infos depuis la console Firebase)
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
       authDomain: "YOUR_PROJECT.firebaseapp.com",
-      databaseURL: "https://YOUR_PROJECT-ID-default-rtdb.europe-west1.firebasedatabase.app", // forme actuelle de l'URL
+      databaseURL: "https://YOUR_PROJECT.firebaseio.com",
       projectId: "YOUR_PROJECT",
       storageBucket: "YOUR_PROJECT.appspot.com",
       messagingSenderId: "SENDER_ID",
       appId: "APP_ID"
     };
 
-    // Sécurité : empêche l'app de planter silencieusement si la config n'est pas remplie
-    let firebaseOk = true;
-    try {
-      firebase.initializeApp(firebaseConfig);
-    } catch (e) {
-      firebaseOk = false;
-      console.error(e);
-      document.getElementById('message').textContent = "Erreur de configuration Firebase. Vérifie la config.";
-    }
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-    const db = firebaseOk ? firebase.database() : null;
-
-    // === Paramètres ===
-    const MAX_PLACES = 2; // mets 100 ou la valeur réelle
+    // ⚙️ Paramètres
+    const MAX_PLACES = 2; 
     const REDIRECT_URL = "https://www.helloasso.com/associations/tribu-ensae/evenements/wer-ensae-2025";
 
     // Codes en base64
@@ -103,78 +93,56 @@
     function decode(str) { return atob(str); }
 
     const remainingSpan = document.getElementById("remaining");
-    const messageEl = document.getElementById("message");
-    const submitBtn = document.getElementById("submitBtn");
+    const counterRef = db.ref("placesUsed");
 
-    if (firebaseOk) {
-      const counterRef = db.ref("placesUsed");
+    // 🔄 Affichage en direct du compteur
+    counterRef.on("value", (snapshot) => {
+      let used = snapshot.val() ?? 0;
+      remainingSpan.textContent = MAX_PLACES - used;
+    });
 
-      // Initialise le compteur à 0 s'il n'existe pas
-      counterRef.once('value').then(snap => {
-        if (snap.val() === null) counterRef.set(0);
-      }).catch(err => {
-        console.error(err);
-        messageEl.textContent = "Impossible de lire le compteur.";
-      });
+    // ✅ Validation utilisateur
+    document.getElementById("partyForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      let code = document.getElementById("code").value.trim();
+      let message = document.getElementById("message");
 
-      // 🔄 Écoute en temps réel du compteur
-      counterRef.on("value", (snapshot) => {
-        let used = snapshot.val() ?? 0;
-        const remaining = Math.max(0, MAX_PLACES - used);
-        remainingSpan.textContent = remaining;
-      }, (err) => {
-        console.error(err);
-        remainingSpan.textContent = "?";
-        messageEl.textContent = "Erreur de connexion à la base.";
-      });
-
-      // Validation utilisateur (transaction atomique pour éviter les doubles réservations)
-      document.getElementById("partyForm").addEventListener("submit", function(e) {
-        e.preventDefault();
-        messageEl.textContent = "";
-        const code = document.getElementById("code").value.trim();
-
-        if (code !== decode(codeUserEncoded)) {
-          messageEl.textContent = "Code incorrect. Réessayez.";
-          return;
-        }
-
-        submitBtn.disabled = true;
-        counterRef.transaction(current => {
-          if (current === null) return 1; // première validation
-          if (current < MAX_PLACES) return current + 1; // on incrémente si quota non atteint
-          return; // abort si quota atteint
-        }, (error, committed, snapshot) => {
-          submitBtn.disabled = false;
-          if (error) {
-            console.error(error);
-            messageEl.textContent = "Erreur réseau. Réessayez.";
-          } else if (!committed) {
-            messageEl.textContent = "Désolé, le quota est atteint.";
+      if (code === decode(codeUserEncoded)) {
+        counterRef.transaction((used) => {
+          used = used ?? 0;
+          if (used < MAX_PLACES) {
+            return used + 1;
           } else {
+            return; // quota atteint
+          }
+        }, (error, committed) => {
+          if (error) {
+            message.textContent = "Erreur Firebase : " + error;
+          } else if (!committed) {
+            message.textContent = "Désolé, le quota est atteint.";
+          } else {
+            console.log("Redirection vers HelloAsso...");
             window.location.href = REDIRECT_URL;
           }
         });
-      });
+      } else {
+        message.textContent = "Code incorrect. Réessayez.";
+      }
+    });
 
-      // Admin reset (via code admin)
-      document.getElementById("resetForm").addEventListener("submit", function(e) {
-        e.preventDefault();
-        const resetCode = document.getElementById("resetCode").value.trim();
-        const resetMessage = document.getElementById("resetMessage");
+    // ✅ Admin reset
+    document.getElementById("resetForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      let resetCode = document.getElementById("resetCode").value.trim();
+      let resetMessage = document.getElementById("resetMessage");
 
-        if (resetCode === decode(codeAdminEncoded)) {
-          counterRef.set(0).then(() => {
-            resetMessage.textContent = "Compteur réinitialisé avec succès !";
-          }).catch(err => {
-            console.error(err);
-            resetMessage.textContent = "Erreur lors du reset.";
-          });
-        } else {
-          resetMessage.textContent = "Code admin incorrect.";
-        }
-      });
-    }
+      if (resetCode === decode(codeAdminEncoded)) {
+        counterRef.set(0);
+        resetMessage.textContent = "Compteur réinitialisé avec succès !";
+      } else {
+        resetMessage.textContent = "Code admin incorrect.";
+      }
+    });
 
     document.getElementById("adminLink").addEventListener("click", function() {
       document.getElementById("resetForm").style.display = "block";
