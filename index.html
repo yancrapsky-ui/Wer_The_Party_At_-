@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Wer The Party ?</title>
+  <title>US WEI</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <style>
@@ -46,10 +46,10 @@
   </style>
 </head>
 <body>
-  <h1>Wer The Party At ?!</h1>
+  <h1>US WEI</h1>
 
   <form id="partyForm">
-    <label for="code">Entrez votre code VSS :</label><br>
+    <label for="code">Entrez votre code règlement :</label><br>
     <input type="password" id="code" required>
     <br>
     <button type="submit">Valider</button>
@@ -82,11 +82,11 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const MAX_PLACES = 100;
+    const MAX_PLACES = 2;
     const REDIRECT_URL = "https://www.helloasso.com/associations/tribu-ensae/evenements/wer-ensae-2025";
 
     // Codes en base64
-    const codeUserEncoded = "ODY0Nw==";
+    const codeUserEncoded = "V#";
     const codeAdminEncoded = "MTUzNA==";
 
     function decode(str) { return atob(str); }
