@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>US WEI</title>
+  <title>Wer The Party ?</title>
   <style>
     body {
       margin: 0;
@@ -12,54 +12,103 @@
       align-items: center;
       flex-direction: column;
       background: skyblue;
+      overflow: hidden;
       font-family: Arial, sans-serif;
     }
-    h1 { color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.4); }
+
+    h1 {
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.4);
+    }
+
     form {
       background: white;
       padding: 20px;
       border-radius: 15px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
       text-align: center;
+      position: relative;
+      z-index: 2;
       margin-bottom: 15px;
     }
-    input { padding: 8px; margin: 10px; border: 1px solid #ccc; border-radius: 5px; }
-    button { padding: 10px 20px; border: none; border-radius: 5px; background: dodgerblue; color: white; font-size: 16px; cursor: pointer; }
+
+    input {
+      padding: 8px;
+      margin: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      background: dodgerblue;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background: gray;
+      cursor: not-allowed;
+    }
+
     .ballon {
       position: absolute;
       width: 40px;
       height: 50px;
-      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, white, red);
+      border-radius: 50% 50% 50% 50%;
       animation: float 10s infinite ease-in-out;
       opacity: 0.8;
     }
+
     @keyframes float {
       from { transform: translateY(100vh) scale(1); }
       to { transform: translateY(-120vh) scale(1.2); }
     }
+
+    /* Admin reset caché */
+    #resetForm { display: none; }
+    #adminLink { cursor: pointer; color: white; font-size: 12px; position: fixed; bottom: 5px; right: 10px; }
   </style>
 </head>
 <body>
-  <h1>US WEI</h1>
+  <h1>Wer The Party At ?!</h1>
 
   <form id="partyForm">
-    <label for="code">Entrez votre code règlement :</label><br>
+    <label for="code">Entrez votre code WEI :</label><br>
     <input type="password" id="code" required>
     <br>
     <button type="submit">Valider</button>
     <p id="message"></p>
   </form>
 
-  <script>
-    // 🔑 Code utilisateur (encodé en base64)
-    const codeUserEncoded = "MTQ4NjUy"; // 148652
-    function decode(str) { return atob(str); }
+  <form id="resetForm">
+    <label for="resetCode">Code admin (reset) :</label><br>
+    <input type="password" id="resetCode">
+    <br>
+    <button type="submit">Reset</button>
+    <p id="resetMessage"></p>
+  </form>
 
-    const REDIRECT_URL = "https://www.helloasso.com/associations/tribu-ensae/evenements/wer-ensae-2025";
+  <p id="adminLink">Admin</p>
+
+  <script>
+    const REDIRECT_URL = "https://www.helloasso.com/associations/tribu-ensae/evenements/wer-ensae-2025"; 
+
+    // Codes encodés en base64
+    const codeUserEncoded = "MTQyNTY5";  // 142569
+    const codeAdminEncoded = "MTUzNA=="; // 1534
+
+    function decode(str) {
+      return atob(str);
+    }
 
     document.getElementById("partyForm").addEventListener("submit", function(e) {
       e.preventDefault();
-      let code = document.getElementById("code").value.trim();
+      let code = document.getElementById("code").value;
       let message = document.getElementById("message");
 
       if (code === decode(codeUserEncoded)) {
@@ -69,7 +118,23 @@
       }
     });
 
-    // 🎈 Ballons animés
+    document.getElementById("resetForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      let resetCode = document.getElementById("resetCode").value;
+      let resetMessage = document.getElementById("resetMessage");
+
+      if (resetCode === decode(codeAdminEncoded)) {
+        resetMessage.textContent = "Reset effectué (aucun compteur à gérer).";
+      } else {
+        resetMessage.textContent = "Code admin incorrect.";
+      }
+    });
+
+    document.getElementById("adminLink").addEventListener("click", function() {
+      document.getElementById("resetForm").style.display = "block";
+    });
+
+    // Génération de 20 ballons aléatoires
     for (let i = 0; i < 20; i++) {
       let ballon = document.createElement("div");
       ballon.className = "ballon";
